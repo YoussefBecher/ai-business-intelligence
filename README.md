@@ -4,6 +4,17 @@ Application mobile Flutter qui accompagne la [plateforme décisionnelle de vente
 
 **Technologies** : Flutter, Dart (aucune dépendance externe).
 
+## Aperçu
+
+<p>
+  <img src="screenshots/tableau.png" width="48%" alt="Tableau de bord">
+  <img src="screenshots/previsions.png" width="48%" alt="Prévisions">
+</p>
+<p>
+  <img src="screenshots/alertes.png" width="48%" alt="Alertes et recommandations">
+  <img src="screenshots/assistant.png" width="48%" alt="Assistant décisionnel">
+</p>
+
 ## Fonctionnalités
 
 | Écran | Contenu |
@@ -24,9 +35,8 @@ Application mobile Flutter qui accompagne la [plateforme décisionnelle de vente
 Prérequis : Flutter 3.22 ou plus.
 
 ```bash
-flutter create --project-name ai_business_intelligence .   # génère les dossiers android, ios...
 flutter pub get
-flutter run
+flutter run -d chrome
 ```
 
 ## Structure
@@ -43,6 +53,7 @@ lib/
   assistant_page.dart   interface de discussion
   charts.dart           courbe dessinée avec CustomPaint
 assets/data.json        données de démonstration
+screenshots/            captures d'écran du README
 ```
 
 ## Limites
