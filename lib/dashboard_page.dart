@@ -94,13 +94,15 @@ class _DashboardPageState extends State<DashboardPage> {
             onChanged: (v) => setState(() => region = v),
           ),
           const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.55,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 230,
+              mainAxisExtent: 116,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+            ),
             children: [for (final k in kpis) _KpiCard(k)],
           ),
           const SizedBox(height: 20),

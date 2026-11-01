@@ -75,7 +75,12 @@ class _ShellState extends State<_Shell> {
       AssistantPage(data: widget.data),
     ];
     return Scaffold(
-      body: IndexedStack(index: index, children: pages),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: IndexedStack(index: index, children: pages),
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
