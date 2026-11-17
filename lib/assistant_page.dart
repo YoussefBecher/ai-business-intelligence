@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'assistant.dart';
 import 'data.dart';
+import 'ui.dart';
 
 class _Msg {
   final String text;
@@ -54,18 +55,20 @@ class _AssistantPageState extends State<AssistantPage> {
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Assistant décisionnel',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+              child: PageHeader(
+                title: 'Assistant décisionnel',
+                subtitle: 'Posez vos questions en français sur les ventes, marges, objectifs et prévisions',
+              ),
             ),
           ),
           Expanded(
             child: ListView.builder(
               controller: scroll,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               itemCount: msgs.length,
               itemBuilder: (context, i) {
                 final m = msgs[i];
@@ -74,12 +77,14 @@ class _AssistantPageState extends State<AssistantPage> {
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
-                    decoration: BoxDecoration(
-                      color: m.mine ? cs.primary : cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(14),
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    decoration: m.mine
+                        ? BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(16))
+                        : panelDecoration(context),
+                    child: Text(
+                      m.text,
+                      style: TextStyle(color: m.mine ? cs.onPrimary : cs.onSurface, height: 1.4),
                     ),
-                    child: Text(m.text, style: TextStyle(color: m.mine ? cs.onPrimary : cs.onSurface)),
                   ),
                 );
               },
@@ -108,10 +113,13 @@ class _AssistantPageState extends State<AssistantPage> {
                     controller: ctrl,
                     textInputAction: TextInputAction.send,
                     onSubmitted: _send,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Posez une question…',
-                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: panelColorOf(context),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
                       isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     ),
                   ),
                 ),

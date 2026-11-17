@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'charts.dart';
 import 'data.dart';
 import 'fmt.dart';
+import 'ui.dart';
 
 class ForecastPage extends StatefulWidget {
   final SalesData data;
@@ -52,7 +53,7 @@ class _ForecastPageState extends State<ForecastPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final monthly = d.monthlyCa();
-    final nh = 12; // mois d'historique affichés
+    const nh = 12; // mois d'historique affichés
     final start = monthly.length - nh;
 
     final labels = <String>[
@@ -71,17 +72,22 @@ class _ForecastPageState extends State<ForecastPage> {
         ];
 
     final total = d.forecast.fold<double>(0, (s, x) => s + x.mid);
+    final avg = d.forecast.isEmpty ? 0.0 : total / d.forecast.length;
+    final nf = d.forecast.length;
+    final prev = nf > 0 && monthly.length >= nf
+        ? monthly.sublist(monthly.length - nf).fold<double>(0, (s, x) => s + x)
+        : 0.0;
+    final delta = prev > 0 ? total / prev - 1 : null;
     final weeks = _weeks(12);
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          Text('Prévisions des ventes', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('Modèle Holt-Winters, intervalle d\'environ 95 %, toutes régions.',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
-          const SizedBox(height: 12),
+          const PageHeader(
+            title: 'Prévisions des ventes',
+            subtitle: 'Modèle Holt-Winters, intervalle de confiance d\'environ 95 %, toutes régions',
+          ),
           SegmentedButton<bool>(
             segments: const [
               ButtonSegment(value: false, label: Text('Par mois'), icon: Icon(Icons.calendar_month)),
@@ -90,47 +96,78 @@ class _ForecastPageState extends State<ForecastPage> {
             selected: {weekly},
             onSelectionChanged: (s) => setState(() => weekly = s.first),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           if (!weekly) ...[
-            SeriesChart(
-              labels: labels,
-              real: real,
-              fc: series((x) => x.mid),
-              lo: series((x) => x.lo),
-              hi: series((x) => x.hi),
+            Row(
+              children: [
+                Expanded(child: _Stat('Total $nf mois', fmtM(total), 'CA prévu')),
+                const SizedBox(width: 10),
+                Expanded(child: _Stat('Moyenne', fmtM(avg), 'par mois')),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _Stat(
+                    'Évolution',
+                    delta == null ? '–' : fmtSigned(delta),
+                    'vs $nf mois réels',
+                    color: delta == null ? null : (delta >= 0 ? Colors.green.shade600 : Colors.red.shade600),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Card(
-              elevation: 0,
-              color: cs.primaryContainer.withAlpha(120),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Text('CA cumulé prévu sur ${d.forecast.length} mois : ${fmtM(total)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 14),
+            Panel(
+              title: 'Chiffre d\'affaires : réel et prévu',
+              subtitle: '12 derniers mois et $nf mois de prévision',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Legend(),
+                  const SizedBox(height: 10),
+                  SeriesChart(
+                    labels: labels,
+                    real: real,
+                    fc: series((x) => x.mid),
+                    lo: series((x) => x.lo),
+                    hi: series((x) => x.hi),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            for (var k = 0; k < d.forecast.length; k++)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(d.forecastLong(k)),
-                subtitle: Text('de ${fmtInt(d.forecast[k].lo)} à ${fmtInt(d.forecast[k].hi)}'),
-                trailing: Text(fmtInt(d.forecast[k].mid), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+            const SizedBox(height: 14),
+            Panel(
+              title: 'Détail par mois',
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: Column(
+                children: [
+                  for (var k = 0; k < d.forecast.length; k++) ...[
+                    if (k > 0) Divider(height: 1, color: cs.outlineVariant.withAlpha(120)),
+                    _FcRow(
+                      title: d.forecastLong(k),
+                      range: 'de ${fmtInt(d.forecast[k].lo)} à ${fmtInt(d.forecast[k].hi)}',
+                      value: fmtInt(d.forecast[k].mid),
+                    ),
+                  ],
+                ],
               ),
-          ] else ...[
-            Text(
-              'Estimation : la prévision de chaque mois est répartie à parts égales entre ses jours, puis additionnée par semaine.',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5),
             ),
-            const SizedBox(height: 8),
-            for (final w in weeks)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(w.label),
-                subtitle: Text('de ${fmtInt(w.lo)} à ${fmtInt(w.hi)}'),
-                trailing: Text(fmtInt(w.mid), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          ] else
+            Panel(
+              title: 'Prévision par semaine',
+              subtitle: 'Estimation : la prévision de chaque mois est répartie à parts égales entre ses jours, puis additionnée par semaine.',
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: Column(
+                children: [
+                  for (var k = 0; k < weeks.length; k++) ...[
+                    if (k > 0) Divider(height: 1, color: cs.outlineVariant.withAlpha(120)),
+                    _FcRow(
+                      title: weeks[k].label,
+                      range: 'de ${fmtInt(weeks[k].lo)} à ${fmtInt(weeks[k].hi)}',
+                      value: fmtInt(weeks[k].mid),
+                    ),
+                  ],
+                ],
               ),
-          ],
+            ),
         ],
       ),
     );
@@ -141,4 +178,95 @@ class _Week {
   final String label;
   final double mid, lo, hi;
   _Week(this.label, this.mid, this.lo, this.hi);
+}
+
+/// Petite carte de synthèse : libellé, valeur, précision.
+class _Stat extends StatelessWidget {
+  final String label, value, sub;
+  final Color? color;
+  const _Stat(this.label, this.value, this.sub, {this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: panelDecoration(context),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color ?? cs.onSurface)),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(sub, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ligne de détail : période, fourchette et valeur centrale.
+class _FcRow extends StatelessWidget {
+  final String title, range, value;
+  const _FcRow({required this.title, required this.range, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(range, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+              ],
+            ),
+          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Légende du graphique : série réelle, prévision et intervalle.
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    const fc = Color(0xFFD9822B);
+    Widget item(Widget swatch, String text) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            swatch,
+            const SizedBox(width: 6),
+            Text(text, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          ],
+        );
+    return Wrap(
+      spacing: 16,
+      runSpacing: 6,
+      children: [
+        item(Container(width: 18, height: 3, color: cs.primary), 'CA réel'),
+        item(Container(width: 18, height: 3, color: fc), 'Prévision'),
+        item(Container(width: 18, height: 10, color: fc.withAlpha(60)), 'Intervalle 95 %'),
+      ],
+    );
+  }
 }
