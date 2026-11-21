@@ -26,6 +26,16 @@ class _AssistantPageState extends State<AssistantPage> {
     _Msg('Bonjour, je suis votre assistant décisionnel. Posez-moi une question sur les ventes, les marges, les objectifs ou les prévisions.', false),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Question posée à l'ouverture : http://localhost:8080/?tab=3&q=...
+    final q = Uri.base.queryParameters['q'];
+    if (q != null && q.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _send(q));
+    }
+  }
+
   void _send(String text) {
     final t = text.trim();
     if (t.isEmpty) return;

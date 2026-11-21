@@ -116,7 +116,11 @@ class _Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<_Shell> {
-  int index = 0;
+  // Permet d'ouvrir directement un onglet : http://localhost:8080/?tab=2
+  int index = () {
+    final t = int.tryParse(Uri.base.queryParameters['tab'] ?? '');
+    return (t != null && t >= 0 && t <= 3) ? t : 0;
+  }();
 
   @override
   Widget build(BuildContext context) {
